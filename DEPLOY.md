@@ -1,6 +1,6 @@
-# LatePay Kit deploy (prepared, NOT published)
+# LatePay Kit deploy (LIVE since 27 Oct 2026: https://frozenvisions.github.io/latepay-kit/)
 Host: GitHub Pages, free plan (public repo, static). Cost £0.
-Steps (need Chris's yes + GitHub account):
+Steps (all done 27 Oct 2026; kept for reference):
 1. Create public repo e.g. `latepay-kit`; push contents of this folder to `main`.
 2. Settings > Pages > Deploy from branch `main` / root.
 3. Stripe: create Payment Link £5; After payment -> "Don't show confirmation page" -> redirect to `https://<user>.github.io/latepay-kit/?paid={CHECKOUT_SESSION_ID}`.
