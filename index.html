@@ -1,0 +1,47 @@
+<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LatePay Kit</title>
+<style>body{font-family:system-ui;max-width:760px;margin:auto;padding:1em}label{display:block;margin:.4em 0}input,select{width:100%;padding:.4em}button{padding:.6em 1em;margin:.3em 0}pre{white-space:pre-wrap;background:#f4f4f4;padding:1em}.note{font-size:.85em;color:#555}#inv{display:none}@media print{body *{visibility:hidden}#inv,#inv *{visibility:visible}#inv{display:block;position:absolute;top:0;left:0}}</style></head><body>
+<h1>Owed money by a business? Get paid – politely, then legally.</h1>
+<p>UK law lets you add interest and a fixed fee to late business invoices. Most freelancers never claim it. LatePay Kit works it out and writes the emails for you in 60 seconds.</p>
+<h3>How it works</h3><ol><li>Enter the invoice amount and due date.</li><li>See the interest and compensation the Late Payment Act lets you claim.</li><li>Get 3 ready-to-send chase emails + an interest invoice PDF – £5.</li></ol>
+<form id="f" onsubmit="go(false);return false">
+<label><input type="checkbox" id="b2b" required style="width:auto"> The client is a business (the Act doesn't cover consumers)</label>
+<label>Your name / business<input id="me" required></label>
+<label>Client business name<input id="cl" required></label>
+<label>Invoice no.<input id="no" required></label>
+<label>Amount (£)<input id="amt" type="number" step="0.01" min="0.01" required></label>
+<label>Invoice date<input id="idate" type="date" required></label>
+<label>Due date (leave blank if none agreed: 30 days after invoice)<input id="due" type="date"></label>
+<label>Calculate to (today by default)<input id="asof" type="date"></label>
+<label>BoE base rate (%)<input id="base" type="number" step="0.01" value="3.75"></label>
+<p class="note">Pre-filled: 3.75%, Bank Rate since 18 Dec 2025 (<a href="https://www.bankofengland.co.uk/boeapps/database/Bank-Rate.asp">Bank of England</a>, checked 27 Oct 2026). The Act uses the rate in force on 30 Jun / 31 Dec before the period.</p>
+<button>Work out what I'm owed – free</button></form>
+<div id="out"></div>
+<div id="buy" style="display:none"><button type="button" onclick="buy()">Get my chase pack – £5</button><span class="note" id="buynote"></span></div>
+<div id="paid" style="display:none"><h3>Chase emails</h3><div id="em"></div><button type="button" onclick="window.print()">Print / save interest invoice as PDF</button>
+<h3>Next steps</h3><p>If still unpaid: send a letter before action, then consider <a href="https://www.gov.uk/make-money-claim">Money Claim Online</a>. Guide: <a href="https://www.gov.uk/late-commercial-payments-interest-debt-recovery">gov.uk late payment</a>.</p></div>
+<div id="inv"></div>
+<p class="note">Nothing you type is stored; it runs in your browser. Not legal advice. For big or disputed debts, talk to a solicitor.</p>
+<script src="calc.js"></script><script>
+// === SWAP IN: Stripe Payment Link. In Stripe set "After payment" -> redirect to https://<site>/?paid={CHECKOUT_SESSION_ID}
+const PAYMENT_LINK='https://buy.stripe.com/dRm4gBc9IfDkc09aSe5Vu0b';
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const FIELDS=['b2b','me','cl','no','amt','idate','due','asof','base'];
+function buy(){const d={};FIELDS.forEach(k=>d[k]=k=='b2b'?$(k).checked:$(k).value);localStorage.setItem('lpk',JSON.stringify(d));
+if(PAYMENT_LINK.includes('REPLACE_ME')){$('buynote').textContent=' Payments not live yet.';return}location.href=PAYMENT_LINK}
+window.addEventListener('DOMContentLoaded',()=>{const p=new URLSearchParams(location.search).get('paid');const d=JSON.parse(localStorage.getItem('lpk')||'null');
+if(p&&p.startsWith('cs_')&&d){FIELDS.forEach(k=>k=='b2b'?$(k).checked=d[k]:$(k).value=d[k]);go(true)}});
+const $=i=>document.getElementById(i),g=n=>'£'+n.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}),fd=s=>new Date(s).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+function go(paid){const a=+$('amt').value,id=$('idate').value;let due=$('due').value;if(!due){const t=new Date(id);t.setDate(t.getDate()+30);due=t.toISOString().slice(0,10)}
+const asof=$('asof').value||new Date().toISOString().slice(0,10),r=calc(a,due,asof,+$('base').value),tot=r.interest+r.comp;
+const pb=new Date(asof);pb.setDate(pb.getDate()+7);const P=fd(pb.toISOString().slice(0,10));
+$('out').innerHTML=`<h3>Result</h3><p>Days overdue: <b>${r.days}</b><br>Interest rate: ${r.rate}% a year<br>Daily interest: ${g(r.daily)}<br>Statutory interest to date: <b>${g(r.interest)}</b><br>Fixed compensation: <b>${g(r.comp)}</b><br>Total you can add: <b>${g(tot)}</b></p>`;
+if(!r.days){$('out').innerHTML+='<p><b>This invoice is not overdue yet, so there is nothing to claim.</b></p>';$('buy').style.display='none';$('paid').style.display='none';return}
+$('buy').style.display=paid?'none':'block';if(!paid){$('paid').style.display='none';$('inv').innerHTML='';return}
+const m=esc($('me').value),c=esc($('cl').value),n=esc($('no').value);
+$('em').innerHTML=[[`Friendly reminder: invoice ${n}`,`Hi ${c},\n\nJust a quick reminder that invoice ${n} for ${g(a)} was due on ${fd(due)}. Could you let me know when payment will be made?\n\nThanks,\n${m}`],
+[`Overdue: invoice ${n} – late payment interest now applies`,`Hi ${c},\n\nInvoice ${n} for ${g(a)} is now ${r.days} days overdue. Under the Late Payment of Commercial Debts (Interest) Act 1998, I am entitled to claim statutory interest at ${r.rate}% a year (${g(r.daily)} a day) and fixed compensation of ${g(r.comp)}.\n\nPlease pay the original amount promptly to limit further interest.\n\nRegards,\n${m}`],
+[`Final notice: invoice ${n} – payment required by ${P}`,`Dear ${c},\n\nDespite previous reminders, invoice ${n} for ${g(a)} remains unpaid, ${r.days} days after its due date of ${fd(due)}.\n\nUnder the Late Payment of Commercial Debts (Interest) Act 1998 the amount now due is:\nInvoice: ${g(a)}\nStatutory interest to ${fd(asof)}: ${g(r.interest)}\nFixed compensation: ${g(r.comp)}\nTotal: ${g(a+tot)}\n\nPlease pay in full by ${P}. If payment is not received by then, I intend to start court proceedings without further notice.\n\n${m}`]]
+.map(([s,b],i)=>`<h4>Email ${i+1}</h4><pre><b>Subject:</b> ${s}\n\n${b}</pre>`).join('');
+$('inv').innerHTML=`<h2>Interest and compensation invoice</h2><p>From: ${m}<br>To: ${c}<br>Date: ${fd(asof)}<br>Ref: ${n}-INT</p><table border=1 cellpadding=6 style="border-collapse:collapse"><tr><td>Statutory interest on invoice ${n} (${g(a)}), ${r.rate}% a year, ${r.days} days from ${fd(due)}</td><td>${g(r.interest)}</td></tr><tr><td>Fixed compensation (Late Payment of Commercial Debts (Interest) Act 1998)</td><td>${g(r.comp)}</td></tr><tr><th>Total due</th><th>${g(tot)}</th></tr></table><p>Interest continues at ${g(r.daily)} a day until paid.</p>`;
+$('paid').style.display='block';}
+</script></body></html>
